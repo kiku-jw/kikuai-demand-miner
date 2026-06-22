@@ -163,7 +163,7 @@ parks. Telegram must not.
 
 Telegram shows at most five human-readable ready candidates:
 
-- only `proof-card`, `PRD-lite`, or `nick-proof-approved` candidates
+- only `proof-card`, `PRD-lite`, or `operator-proof-approved` candidates
 - no `watchlist` fallback; if no candidate passes, send a short "no ready ideas"
   status instead of candidate details
 - no raw, needs-evidence, park, reject, candidate ids, ledger paths, or reason

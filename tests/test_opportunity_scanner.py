@@ -1242,7 +1242,7 @@ class OpportunityScannerCliTest(unittest.TestCase):
         self.assertNotIn("Candidate ID", text)
         self.assertNotIn("ledger/", text)
 
-    def test_telegram_digest_honors_nick_proof_approval(self) -> None:
+    def test_telegram_digest_honors_operator_proof_approval(self) -> None:
         candidates = {
             "cand_approved": {
                 "candidate_id": "cand_approved",
@@ -1257,19 +1257,19 @@ class OpportunityScannerCliTest(unittest.TestCase):
                 "target_buyer": "solo founders",
                 "painful_job": "ship a buyer-visible proof faster",
                 "product_angle": "PRD-lite generator",
-                "strongest_signals": {"money": ["Nick approved after manual review"]},
+                "strongest_signals": {"money": ["operator approved after manual review"]},
                 "first_async_channel": "specific Reddit pain thread list",
                 "missing_evidence": [],
-                "reason_codes": ["nick-approved"],
+                "reason_codes": ["operator-approved"],
                 "next_validation_step": "scope PRD-lite",
             }
         }
-        statuses = {"cand_approved": "nick-proof-approved"}
+        statuses = {"cand_approved": "operator-proof-approved"}
 
         text = scanner.telegram_human_digest("2026-W23", candidates, statuses, cards, {})
 
         self.assertIn("Ready shortlist: 1 candidate", text)
-        self.assertIn("Approved Helper - Nick-approved (24/34)", text)
+        self.assertIn("Approved Helper - Operator-approved (24/34)", text)
         self.assertNotIn("watchlist candidate", text)
 
     def test_send_telegram_digest_dry_run_does_not_require_token(self) -> None:
@@ -1333,23 +1333,23 @@ class OpportunityScannerCliTest(unittest.TestCase):
         self.assertIn("Opportunity Scanner - 2026-W23", str(sent[0]["text"]))
         self.assertNotIn("Candidate ID", str(sent[0]["text"]))
 
-    def test_nick_feedback_writes_decision_event_and_filter_update(self) -> None:
+    def test_operator_feedback_writes_decision_event_and_filter_update(self) -> None:
         self.run_cli("run", "--input", str(FIXTURE))
         self.run_cli("label")
         self.run_cli("deep-review")
         card = self.read_jsonl(self.tmp_dir / "data" / "ledger" / "opportunity_cards.jsonl")[0]
         candidate_id = str(card["candidate_id"])
-        feedback_path = self.tmp_dir / "nick-feedback.jsonl"
+        feedback_path = self.tmp_dir / "operator-feedback.jsonl"
         feedback_path.write_text(
             json.dumps(
                 {
                     "candidate_id": candidate_id,
-                    "decision": "nick-reject",
+                    "decision": "operator-reject",
                     "reason_codes": ["not-close-to-me"],
-                    "notes": "Nick would not use this.",
+                    "notes": "the operator would not use this.",
                     "reusable_filter_update": True,
                     "filter_update": {
-                        "proposed_change": "Down-rank tools Nick would not personally use.",
+                        "proposed_change": "Down-rank tools the operator would not personally use.",
                         "target_doc": "docs/opportunity-filter-v2.md",
                     },
                 }
@@ -1358,22 +1358,22 @@ class OpportunityScannerCliTest(unittest.TestCase):
             encoding="utf-8",
         )
 
-        result = self.run_cli("nick-feedback", "--input", str(feedback_path))
+        result = self.run_cli("operator-feedback", "--input", str(feedback_path))
         payload = json.loads(result.stdout)
         self.assertEqual(payload["decisions_written"], 1)
         self.assertEqual(payload["events_written"], 1)
         self.assertEqual(payload["filter_updates_written"], 1)
 
         data_dir = self.tmp_dir / "data"
-        decisions = self.read_jsonl(data_dir / "ledger" / "nick_decisions.jsonl")
+        decisions = self.read_jsonl(data_dir / "ledger" / "operator_decisions.jsonl")
         filter_updates = self.read_jsonl(data_dir / "ledger" / "filter_updates.jsonl")
         events = self.read_jsonl(data_dir / "ledger" / "events.jsonl")
         digest_text = (data_dir / "reports" / "2026-W23-digest.md").read_text(encoding="utf-8")
 
-        self.assertEqual(decisions[-1]["decision"], "nick-reject")
+        self.assertEqual(decisions[-1]["decision"], "operator-reject")
         self.assertEqual(filter_updates[-1]["status"], "open")
-        self.assertEqual(events[-1]["layer"], "nick-feedback")
-        self.assertEqual(events[-1]["to_status"], "nick-reject")
+        self.assertEqual(events[-1]["layer"], "operator-feedback")
+        self.assertEqual(events[-1]["to_status"], "operator-reject")
         self.assertIn("Opportunity Scanner Digest", digest_text)
 
     def test_calibration_report_tracks_yield_reasons_and_filter_drift(self) -> None:
@@ -1381,7 +1381,7 @@ class OpportunityScannerCliTest(unittest.TestCase):
         self.run_cli("label")
         self.run_cli("deep-review")
         card = self.read_jsonl(self.tmp_dir / "data" / "ledger" / "opportunity_cards.jsonl")[0]
-        feedback_path = self.tmp_dir / "nick-feedback.jsonl"
+        feedback_path = self.tmp_dir / "operator-feedback.jsonl"
         feedback_path.write_text(
             json.dumps(
                 {
@@ -1395,7 +1395,7 @@ class OpportunityScannerCliTest(unittest.TestCase):
             + "\n",
             encoding="utf-8",
         )
-        self.run_cli("nick-feedback", "--input", str(feedback_path))
+        self.run_cli("operator-feedback", "--input", str(feedback_path))
 
         result = self.run_cli("calibration")
         payload = json.loads(result.stdout)

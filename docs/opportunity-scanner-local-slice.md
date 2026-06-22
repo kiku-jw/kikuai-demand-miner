@@ -147,13 +147,13 @@ Allow monitor Telegram send only when `config/github-monitor.json` also has
 python3 scripts/run_github_monitor.py --send
 ```
 
-Apply Nick feedback:
+Apply operator feedback:
 
 ```bash
 python3 scripts/opportunity_scanner.py \
   --week 2026-W23 \
-  nick-feedback \
-  --input path/to/nick-feedback.jsonl
+  operator-feedback \
+  --input path/to/operator-feedback.jsonl
 ```
 
 Write calibration:
@@ -198,7 +198,7 @@ data/
   ledger/council_packets.jsonl
   ledger/council_findings.jsonl
   ledger/aggregations.jsonl
-  ledger/nick_decisions.jsonl
+  ledger/operator_decisions.jsonl
   ledger/filter_updates.jsonl
   ledger/calibrations.jsonl
   ledger/rescore_runs.jsonl
@@ -257,7 +257,7 @@ data/
   `TELEGRAM_CHAT_ID` are present in the environment or repo-local `.env`.
 - Telegram outbox excludes raw, park, reject, candidate ids, ledger paths, and
   reason-code dumps by default.
-- Nick feedback writes durable decision events and optional filter updates.
+- operator feedback writes durable decision events and optional filter updates.
 - Calibration reports source/lane yield, reason-code histogram, proof-card
   conversion, and filter drift.
 - Rescore can reprocess old raw observations into a target week with current

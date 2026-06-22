@@ -281,12 +281,12 @@ COUNCIL_VERDICTS = {"pass", "caution", "veto", "unknown"}
 DEEP_REVIEW_INPUT_STATUSES = {"codex-review", "watchlist-candidate", "watchlist", "proof-card-candidate"}
 DEEP_REVIEW_FINAL_STATUSES = {"reject", "park", "watchlist", "proof-card", "PRD-lite"}
 DEEP_REVIEW_STRONG_STATUSES = {"proof-card", "PRD-lite"}
-NICK_DECISIONS = {"nick-reject", "nick-park", "nick-watchlist", "nick-proof-approved", "filter-update-needed"}
-NICK_DIGEST_VERDICT_OVERRIDES = {
-    "nick-reject": "reject",
-    "nick-park": "park",
-    "nick-watchlist": "watchlist",
-    "nick-proof-approved": "nick-proof-approved",
+OPERATOR_DECISIONS = {"operator-reject", "operator-park", "operator-watchlist", "operator-proof-approved", "filter-update-needed"}
+OPERATOR_DIGEST_VERDICT_OVERRIDES = {
+    "operator-reject": "reject",
+    "operator-park": "park",
+    "operator-watchlist": "watchlist",
+    "operator-proof-approved": "operator-proof-approved",
 }
 STRICT_SCORECARD_ITEMS = (
     ("pain_urgency", "Urgent recurring pain"),
@@ -311,7 +311,7 @@ STRICT_PROOF_CARD_MIN = 27
 STRICT_CHALLENGER_MIN = 22
 STRICT_WATCHLIST_MIN = 16
 TELEGRAM_HUMAN_CANDIDATE_LIMIT = 5
-TELEGRAM_READY_VERDICTS = {"proof-card", "PRD-lite", "nick-proof-approved"}
+TELEGRAM_READY_VERDICTS = {"proof-card", "PRD-lite", "operator-proof-approved"}
 
 
 def utc_now() -> str:
@@ -541,7 +541,7 @@ def ledger_paths(data_dir: Path, week: str) -> dict[str, Path]:
         "council_packets": data_dir / "ledger" / "council_packets.jsonl",
         "council_findings": data_dir / "ledger" / "council_findings.jsonl",
         "aggregations": data_dir / "ledger" / "aggregations.jsonl",
-        "nick_decisions": data_dir / "ledger" / "nick_decisions.jsonl",
+        "operator_decisions": data_dir / "ledger" / "operator_decisions.jsonl",
         "filter_updates": data_dir / "ledger" / "filter_updates.jsonl",
         "calibrations": data_dir / "ledger" / "calibrations.jsonl",
         "rescore_runs": data_dir / "ledger" / "rescore_runs.jsonl",
@@ -3060,7 +3060,7 @@ def council_packet(card: dict[str, object], lane: str) -> dict[str, object]:
         "skeptic-kill": "What is the strongest reason to kill or park this candidate?",
     }
     do_not = [
-        "Do not judge Nick personal fit.",
+        "Do not judge operator personal fit.",
         "Do not recommend building a full SaaS shell.",
         "Do not treat stars as money evidence.",
         "Do not smooth over missing evidence or conflicts.",
@@ -3489,8 +3489,8 @@ def council_aggregate(data_dir: Path, week: str, input_path: Path) -> dict[str, 
 
 def digest_verdict(candidate_id: str, statuses: dict[str, str], card: dict[str, object], aggregation: dict[str, object]) -> str:
     status = statuses.get(candidate_id, "raw")
-    if status in NICK_DIGEST_VERDICT_OVERRIDES:
-        return NICK_DIGEST_VERDICT_OVERRIDES[status]
+    if status in OPERATOR_DIGEST_VERDICT_OVERRIDES:
+        return OPERATOR_DIGEST_VERDICT_OVERRIDES[status]
     if aggregation:
         return normalize_text(aggregation.get("final_machine_verdict")) or "watchlist"
     if card:
@@ -3575,8 +3575,8 @@ def human_digest_candidate_block(candidate: dict[str, object], card: dict[str, o
     total = strict_total_from_card(card)
     if verdict == "PRD-lite":
         band = "PRD-lite"
-    elif verdict == "nick-proof-approved":
-        band = "Nick-approved"
+    elif verdict == "operator-proof-approved":
+        band = "Operator-approved"
     else:
         band = "proof-card"
     next_action = digest_next_action(card, aggregation)
@@ -3608,7 +3608,7 @@ def telegram_human_digest(
         aggregation = aggregations.get(candidate_id, {})
         verdict = digest_verdict(candidate_id, statuses, card, aggregation)
         if verdict in TELEGRAM_READY_VERDICTS:
-            verdict_rank = 4 if verdict in {"PRD-lite", "nick-proof-approved"} else 3
+            verdict_rank = 4 if verdict in {"PRD-lite", "operator-proof-approved"} else 3
             counts["ready"] += 1
         elif verdict == "watchlist":
             counts["watchlist"] += 1
@@ -3845,20 +3845,20 @@ def send_telegram_digest(
     }
 
 
-def normalize_nick_decision(raw: dict[str, object]) -> dict[str, object]:
+def normalize_operator_decision(raw: dict[str, object]) -> dict[str, object]:
     candidate_id = normalize_text(raw.get("candidate_id"))
     decision = normalize_text(raw.get("decision"))
     if not candidate_id:
-        raise ValueError("Nick decision requires candidate_id")
-    if decision not in NICK_DECISIONS:
-        raise ValueError(f"Unknown Nick decision: {decision}")
+        raise ValueError("operator decision requires candidate_id")
+    if decision not in OPERATOR_DECISIONS:
+        raise ValueError(f"Unknown operator decision: {decision}")
     reason_codes = raw.get("reason_codes") if isinstance(raw.get("reason_codes"), list) else []
     filter_update = raw.get("filter_update") if isinstance(raw.get("filter_update"), dict) else {}
     return {
-        "decision_id": normalize_text(raw.get("decision_id")) or f"nick_{uuid.uuid4().hex}",
+        "decision_id": normalize_text(raw.get("decision_id")) or f"operator_{uuid.uuid4().hex}",
         "candidate_id": candidate_id,
         "created_at": normalize_text(raw.get("created_at")) or utc_now(),
-        "actor": normalize_text(raw.get("actor")) or "nick",
+        "actor": normalize_text(raw.get("actor")) or "operator",
         "decision": decision,
         "reason_codes": [normalize_text(reason) for reason in reason_codes if normalize_text(reason)],
         "notes": normalize_text(raw.get("notes")) or "unknown",
@@ -3882,10 +3882,10 @@ def filter_update_row(decision: dict[str, object]) -> dict[str, object]:
     }
 
 
-def apply_nick_feedback(data_dir: Path, week: str, input_path: Path) -> dict[str, object]:
+def apply_operator_feedback(data_dir: Path, week: str, input_path: Path) -> dict[str, object]:
     paths = ensure_layout(data_dir, week)
     raw_rows = read_jsonl(input_path)
-    decisions = [normalize_nick_decision(row) for row in raw_rows]
+    decisions = [normalize_operator_decision(row) for row in raw_rows]
     events = read_jsonl(paths["events"])
     statuses = status_by_candidate_for_week(events, week)
     decisions_written = 0
@@ -3894,17 +3894,17 @@ def apply_nick_feedback(data_dir: Path, week: str, input_path: Path) -> dict[str
 
     for decision in decisions:
         candidate_id = normalize_text(decision.get("candidate_id"))
-        append_jsonl(paths["nick_decisions"], decision)
+        append_jsonl(paths["operator_decisions"], decision)
         decisions_written += 1
         from_status = statuses.get(candidate_id, "raw")
         to_status = normalize_text(decision.get("decision"))
         event = event_row(
             candidate_id,
-            "nick-feedback",
+            "operator-feedback",
             from_status,
             to_status,
             label_list(decision, "reason_codes"),
-            [f"ledger/nick_decisions.jsonl#{decision['decision_id']}"],
+            [f"ledger/operator_decisions.jsonl#{decision['decision_id']}"],
             normalize_text(decision.get("notes")),
             week,
         )
@@ -3964,7 +3964,7 @@ def proof_card_conversion(candidates: list[dict[str, object]], statuses: dict[st
         candidate
         for candidate in candidates
         if statuses.get(normalize_text(candidate.get("candidate_id")), "raw")
-        in {"proof-card", "PRD-lite", "nick-proof-approved"}
+        in {"proof-card", "PRD-lite", "operator-proof-approved"}
     ]
     return {
         "candidate_count": total,
@@ -4345,9 +4345,9 @@ def build_parser() -> argparse.ArgumentParser:
     telegram_parser.add_argument("--api-base", default=TELEGRAM_API_BASE, help="Telegram Bot API base URL")
     telegram_parser.set_defaults(command="send-telegram-digest")
 
-    feedback_parser = subparsers.add_parser("nick-feedback", help="Apply Nick feedback decisions from JSONL")
-    feedback_parser.add_argument("--input", required=True, help="JSONL Nick feedback input file")
-    feedback_parser.set_defaults(command="nick-feedback")
+    feedback_parser = subparsers.add_parser("operator-feedback", help="Apply operator feedback decisions from JSONL")
+    feedback_parser.add_argument("--input", required=True, help="JSONL operator feedback input file")
+    feedback_parser.set_defaults(command="operator-feedback")
 
     calibration_parser = subparsers.add_parser("calibration", help="Write weekly calibration report")
     calibration_parser.set_defaults(command="calibration")
@@ -4454,8 +4454,8 @@ def main(argv: list[str]) -> int:
         print(json.dumps(result, sort_keys=True))
         return 0
 
-    if args.command == "nick-feedback":
-        result = apply_nick_feedback(data_dir, week, Path(args.input))
+    if args.command == "operator-feedback":
+        result = apply_operator_feedback(data_dir, week, Path(args.input))
         print(json.dumps(result, sort_keys=True))
         return 0
 

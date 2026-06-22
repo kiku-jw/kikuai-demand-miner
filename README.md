@@ -73,4 +73,4 @@ Runtime `data/` is ignored by Git.
 
 ## License
 
-No license has been selected yet.
+MIT.

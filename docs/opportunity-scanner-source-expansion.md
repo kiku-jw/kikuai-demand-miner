@@ -99,7 +99,7 @@ Future sources should be added only after a source contract doc and tests:
 - ecosyste.ms or GH Archive
 - marketplaces and plugin stores
 - Reddit/Hacker News/Product Hunt only with specific query paths
-- pasted research reports from Nick
+- pasted research reports from Operator
 
 ## Verification
 
@@ -222,7 +222,7 @@ patterns and unclear buyer signals.
 
 Telegram behavior does not change. HN report-only clusters and raw candidates
 do not appear in Telegram. The digest still sends only ideas that survive the
-existing final filters as `proof-card`, `PRD-lite`, or Nick-approved proof.
+existing final filters as `proof-card`, `PRD-lite`, or Operator-approved proof.
 
 Reddit remains parked until the source contract is stricter than "scan
 subreddits." A Reddit source must define exact public endpoints, allowed
