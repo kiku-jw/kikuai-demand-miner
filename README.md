@@ -8,7 +8,9 @@ This is discovery tooling, not a money predictor. A demand cluster is evidence
 that people discussed a pain. It still needs normal proof-card validation before
 any build decision.
 
-Primary CTA: run a capped Hacker News demand report locally.
+**[Run a capped demand report locally](#quick-start)**
+
+[Docs](#what-it-does) · [Examples](#quick-start) · [Output](#quick-start)
 
 ```bash
 python3 scripts/opportunity_scanner.py --week 2026-W24 hn-demand --max-stories 80 --comments-per-story 20 --max-clusters 10 --max-candidates 5
